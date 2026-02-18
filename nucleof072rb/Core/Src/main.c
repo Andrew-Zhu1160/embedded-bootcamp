@@ -19,11 +19,14 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "spi.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
 
 /* USER CODE END Includes */
 
@@ -65,6 +68,20 @@ void SystemClock_Config(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+	/*i loki forgot c++ use{} for array not []*/
+	uint8_t spi_rx_data[3]={0x00,0x00,0x00};
+
+	/*these numbers are for the specific instruction of 'i wanna get readings from channel 0 of adc'
+	 and it is being sent by the MCU
+	 got these info from the datasheet */
+	uint8_t spi_tx_data[3]={0x01,0x80,0x00};
+
+
+	HAL_StatusTypeDef spi_rx_read_status;
+
+	uint16_t received_raw_data=0x0000;
+	uint16_t parsed_data = 0x0000;
+	const uint16_t COUNT_RANGE_DIVERGENCE = 1000, BASE_RANGE=1000;
 
   /* USER CODE END 1 */
 
@@ -87,7 +104,13 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
+  MX_SPI1_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+
+  /*start the timer*/
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+
 
   /* USER CODE END 2 */
 
@@ -98,6 +121,38 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	  /*Manual pull CS line low to start data transfer*/
+	  HAL_GPIO_WritePin(SPI_CHIP_SELECT_GPIO_Port, SPI_CHIP_SELECT_Pin, GPIO_PIN_RESET);
+
+	  /*3 is capacity of array 3*8 = 24 bit total*/
+	  spi_rx_read_status=HAL_SPI_TransmitReceive(&hspi1, spi_tx_data, spi_rx_data, 3, 100);
+
+	  /*Pull cs line back up*/
+	  HAL_GPIO_WritePin(SPI_CHIP_SELECT_GPIO_Port, SPI_CHIP_SELECT_Pin, GPIO_PIN_SET);
+
+	  if(spi_rx_read_status != HAL_OK){
+		  /*Catches error ,skip
+		   maybe a fallback value?
+		   depends on what the servo is used for */
+		  continue;
+	  }
+
+	  received_raw_data = ((uint16_t)(spi_rx_data[1] & 0x03) << 8 | spi_rx_data[2]);
+
+	  if(received_raw_data < 0 || received_raw_data > 1023){
+		  /*no falsely value allowed, fallback*/
+		  received_raw_data = 1023;
+	  }
+
+	  //map data
+	  parsed_data = (uint16_t)(BASE_RANGE + (uint32_t)(COUNT_RANGE_DIVERGENCE*received_raw_data)/1023);
+
+
+	  //adjust duty cycle
+	  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,parsed_data);
+
+
   }
   /* USER CODE END 3 */
 }
