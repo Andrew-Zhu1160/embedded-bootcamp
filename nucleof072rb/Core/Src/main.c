@@ -81,7 +81,8 @@ int main(void)
 
 	uint16_t received_raw_data=0x0000;
 	uint16_t parsed_data = 0x0000;
-	const uint16_t COUNT_RANGE_DIVERGENCE = 2000, BASE_RANGE=2000;
+	const uint16_t COUNT_RANGE_DIVERGENCE = 3200,
+					BASE_RANGE=3200;
 
   /* USER CODE END 1 */
 
@@ -151,6 +152,8 @@ int main(void)
 
 	  //adjust duty cycle
 	  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,parsed_data);
+
+
 
 
   }
