@@ -81,7 +81,7 @@ int main(void)
 
 	uint16_t received_raw_data=0x0000;
 	uint16_t parsed_data = 0x0000;
-	const uint16_t COUNT_RANGE_DIVERGENCE = 1000, BASE_RANGE=1000;
+	const uint16_t COUNT_RANGE_DIVERGENCE = 2000, BASE_RANGE=2000;
 
   /* USER CODE END 1 */
 
